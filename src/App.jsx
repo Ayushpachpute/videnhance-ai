@@ -51,49 +51,93 @@ function ParticleBackground() {
 // ─── Before/After Slider ───────────────────────────────────────────────────────
 function BeforeAfterSlider({ originalSrc, enhancedSrc }) {
   const [pos, setPos] = useState(50)
+  const [isPlaying, setIsPlaying] = useState(false)
   const ref = useRef(null)
   const dragging = useRef(false)
+  const origVideoRef = useRef(null)
+  const enhVideoRef = useRef(null)
+
   const move = useCallback((cx) => {
     if (!ref.current) return
     const r = ref.current.getBoundingClientRect()
     setPos(Math.min(100, Math.max(0, ((cx - r.left) / r.width) * 100)))
   }, [])
+
   useEffect(() => {
     const up = () => { dragging.current = false }
     window.addEventListener('mouseup', up); window.addEventListener('touchend', up)
     return () => { window.removeEventListener('mouseup', up); window.removeEventListener('touchend', up) }
   }, [])
+
+  const togglePlay = () => {
+    if (!origVideoRef.current || !enhVideoRef.current) return
+    if (isPlaying) {
+      origVideoRef.current.pause()
+      enhVideoRef.current.pause()
+    } else {
+      // Sync times before playing
+      enhVideoRef.current.currentTime = origVideoRef.current.currentTime
+      origVideoRef.current.play()
+      enhVideoRef.current.play()
+    }
+    setIsPlaying(!isPlaying)
+  }
+
   return (
-    <div ref={ref} className="relative w-full rounded-xl overflow-hidden select-none cursor-col-resize"
-      style={{ aspectRatio: '16/9', background: '#111' }}
-      onMouseMove={e => dragging.current && move(e.clientX)}
-      onTouchMove={e => move(e.touches[0].clientX)}>
-      {/* Enhanced BG */}
-      <div className="absolute inset-0">
-        {enhancedSrc
-          ? <video src={enhancedSrc} className="w-full h-full object-cover" />
-          : <div className="w-full h-full bg-gradient-to-br from-purple-900/50 to-blue-900/50 flex items-center justify-center"><span className="text-purple-300 text-sm font-semibold">Enhanced</span></div>}
-        <span className="absolute top-3 right-3 bg-purple-600/90 text-white text-[10px] font-bold px-2 py-1 rounded-full backdrop-blur-sm tracking-wide">ENHANCED</span>
-      </div>
-      {/* Original clipped */}
-      <div className="absolute inset-0 overflow-hidden" style={{ width: `${pos}%` }}>
-        {originalSrc
-          ? <video src={originalSrc} className="h-full object-cover" style={{ width: `${10000 / pos}%`, maxWidth: 'none' }} />
-          : <div className="w-full h-full bg-gradient-to-br from-gray-900/90 to-gray-800/90 flex items-center justify-center"><span className="text-gray-300 text-sm font-semibold">Original</span></div>}
-        <span className="absolute top-3 left-3 bg-gray-800/90 text-white text-[10px] font-bold px-2 py-1 rounded-full backdrop-blur-sm tracking-wide">ORIGINAL</span>
-      </div>
-      {/* Handle */}
-      <div className="absolute top-0 bottom-0 z-10 flex flex-col items-center"
-        style={{ left: `${pos}%`, transform: 'translateX(-50%)' }}
-        onMouseDown={() => { dragging.current = true }}
-        onTouchStart={() => { dragging.current = true }}>
-        <div className="w-px h-full bg-white/80" />
-        <div className="absolute top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white shadow-2xl flex items-center justify-center border-2 border-purple-500 cursor-grab active:cursor-grabbing">
-          <svg className="w-4 h-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8 9l-4 3 4 3M16 9l4 3-4 3" />
-          </svg>
+    <div className="relative group rounded-xl overflow-hidden shadow-[0_0_40px_rgba(0,0,0,0.3)]">
+      <div ref={ref} className="relative w-full overflow-hidden select-none cursor-col-resize"
+        style={{ aspectRatio: '16/9', background: '#111' }}
+        onMouseMove={e => dragging.current && move(e.clientX)}
+        onTouchMove={e => move(e.touches[0].clientX)}>
+        
+        {/* Enhanced BG */}
+        <div className="absolute inset-0">
+          {enhancedSrc
+            ? <video ref={enhVideoRef} src={enhancedSrc} className="w-full h-full object-cover" loop playsInline muted />
+            : <div className="w-full h-full bg-gradient-to-br from-purple-900/50 to-blue-900/50 flex items-center justify-center"><span className="text-purple-300 text-sm font-semibold">Enhanced</span></div>}
+          <span className="absolute top-3 right-3 bg-purple-600/90 text-white text-[10px] font-bold px-2 py-1 rounded-full backdrop-blur-sm tracking-wide">ENHANCED</span>
+        </div>
+        
+        {/* Original clipped */}
+        <div className="absolute inset-0 overflow-hidden" style={{ width: `${pos}%` }}>
+          {originalSrc
+            ? <video ref={origVideoRef} src={originalSrc} className="h-full object-cover" style={{ width: `${10000 / pos}%`, maxWidth: 'none' }} loop playsInline muted />
+            : <div className="w-full h-full bg-gradient-to-br from-gray-900/90 to-gray-800/90 flex items-center justify-center"><span className="text-gray-300 text-sm font-semibold">Original</span></div>}
+          <span className="absolute top-3 left-3 bg-gray-800/90 text-white text-[10px] font-bold px-2 py-1 rounded-full backdrop-blur-sm tracking-wide">ORIGINAL</span>
+        </div>
+        
+        {/* Handle */}
+        <div className="absolute top-0 bottom-0 z-10 flex flex-col items-center"
+          style={{ left: `${pos}%`, transform: 'translateX(-50%)' }}
+          onMouseDown={() => { dragging.current = true }}
+          onTouchStart={() => { dragging.current = true }}>
+          <div className="w-px h-full bg-white/80" />
+          <div className="absolute top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white shadow-2xl flex items-center justify-center border-2 border-purple-500 cursor-grab active:cursor-grabbing">
+            <svg className="w-4 h-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 9l-4 3 4 3M16 9l4 3-4 3" />
+            </svg>
+          </div>
         </div>
       </div>
+
+      {/* Play/Pause Button Overlay */}
+      {originalSrc && enhancedSrc && (
+        <button 
+          onClick={togglePlay}
+          className="absolute bottom-4 right-4 z-20 w-12 h-12 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center text-white border border-white/10 hover:bg-black/80 hover:scale-105 transition-all duration-300 shadow-lg"
+          aria-label={isPlaying ? "Pause" : "Play"}
+        >
+          {isPlaying ? (
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+            </svg>
+          ) : (
+            <svg className="w-5 h-5 ml-1" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          )}
+        </button>
+      )}
     </div>
   )
 }
